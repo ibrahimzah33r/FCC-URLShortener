@@ -3,6 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const validUrl = require('valid-url');
 const cors = require('cors');
+const dns = require('dns');
+//const shortid = require('shortid');
 const bodyParser = require('body-parser');
 const app = express();
 
@@ -47,38 +49,52 @@ const Url = mongoose.model('Url', urlSchema);
 
 app.post('/api/shorturl', async (req, res) => {
   const { url: original_url } = req.body;
-  console.log("Request body:", req.body);
-  console.log('Original URL:', original_url);
 
+  // First, check if URL has a valid structure using valid-url
   if (!validUrl.isUri(original_url)) {
     return res.status(400).json({ error: 'invalid url' });
   }
 
-  try {
-    // Check if the URL already exists
-    let url = await Url.findOne({ original_url });
-    if (url) {
-      return res.json({
-        original_url: url.original_url,
-        short_url: url.short_url,
-      });
+  // Use dns.lookup to check if the domain is reachable
+  const hostname = new URL(original_url).hostname; // Extract the domain from the URL
+
+  dns.lookup(hostname, (err, addresses, family) => {
+    if (err) {
+      return res.status(400).json({ error: 'invalid url' });
     }
 
-    // Create new short URL
-    const short_url = Math.floor(Math.random() * 10000); // or implement your own logic to generate a unique ID
+    // If the domain is reachable, generate the short URL and save it to the database
+    (async () => {
+      try {
+        // Check if URL already exists in the database
+        let existingUrl = await Url.findOne({ original_url });
+        if (existingUrl) {
+          return res.json({
+            original_url: existingUrl.original_url,
+            short_url: existingUrl.short_url,
+          });
+        }
 
-    url = new Url({ original_url, short_url });
-    await url.save();
+        // Generate a unique short URL
+        const short_url = Math.floor(Math.random() * 10000);
 
-    res.json({
-      original_url: url.original_url,
-      short_url: url.short_url,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
+        // Save the new URL to the database
+        const newUrl = new Url({ original_url, short_url });
+        await newUrl.save();
+
+        // Return the response with the original URL and the short URL
+        res.json({
+          original_url: newUrl.original_url,
+          short_url: newUrl.short_url,
+        });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+      }
+    })();
+  });
 });
+
 
 // Redirect to original URL
 app.get('/api/shorturl/:short_url', async (req, res) => {
