@@ -50,9 +50,12 @@ const Url = mongoose.model('Url', urlSchema);
 app.post('/api/shorturl', async (req, res) => {
   const { url: original_url } = req.body;
 
+  console.log('Received URL:', original_url);
+  console.log('Request body:', req.body);
+
   // First, check if URL has a valid structure using valid-url
   if (!validUrl.isUri(original_url)) {
-    return res.status(400).json({ error: 'invalid url' });
+    return res.json({ error: 'invalid url' });
   }
 
   // Use dns.lookup to check if the domain is reachable
@@ -60,7 +63,7 @@ app.post('/api/shorturl', async (req, res) => {
 
   dns.lookup(hostname, (err, addresses, family) => {
     if (err) {
-      return res.status(400).json({ error: 'invalid url' });
+      return res.json({ error: 'invalid url' });
     }
 
     // If the domain is reachable, generate the short URL and save it to the database
