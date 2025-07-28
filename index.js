@@ -10,7 +10,8 @@ const app = express();
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
-const uri = "mongodb+srv://ibz1536:MongoPass@cluster0.mng7f2d.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+//Test credentials. No longer in use.
+//const uri = "mongodb+srv://user:pass@cluster0.mng7f2d.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose.connect(uri)
   .then(() => console.log('MongoDB connected'))
